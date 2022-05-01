@@ -17,37 +17,33 @@ import android.graphics.PointF;
 import android.location.Geocoder;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentTransaction;
 
 
 import com.example.shnyagashnyajnaya.OTMAPI.OTMAPI;
+import com.example.shnyagashnyajnaya.OTMAPI.ResponseOTM.Feature;
 import com.example.shnyagashnyajnaya.OTMAPI.ResponseOTM.ResponseOTM;
+import com.example.shnyagashnyajnaya.OTMAPI.ResponseOTMInf.ResponseOTMInf;
+import com.example.shnyagashnyajnaya.OTMAPI.ServiceToGetInfoAboutPlaces;
 import com.example.shnyagashnyajnaya.OTMAPI.ServiceToGetPlaces;
-import com.yandex.mapkit.Animation;
 import com.yandex.mapkit.MapKit;
 import com.yandex.mapkit.MapKitFactory;
 import com.yandex.mapkit.ScreenPoint;
 import com.yandex.mapkit.geometry.Point;
 import com.yandex.mapkit.layers.ObjectEvent;
-import com.yandex.mapkit.location.Location;
-import com.yandex.mapkit.location.LocationListener;
-import com.yandex.mapkit.location.LocationManager;
-import com.yandex.mapkit.location.LocationStatus;
-import com.yandex.mapkit.map.CameraPosition;
 import com.yandex.mapkit.map.MapObject;
 import com.yandex.mapkit.map.MapObjectTapListener;
 import com.yandex.mapkit.mapview.MapView;
@@ -56,31 +52,21 @@ import com.yandex.mapkit.user_location.UserLocationObjectListener;
 import com.yandex.mapkit.user_location.UserLocationView;
 import com.yandex.runtime.image.ImageProvider;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends AppCompatActivity implements UserLocationObjectListener {
+public class MainActivity extends AppCompatActivity implements UserLocationObjectListener{
     public static MapView mapView;
     public static Geocoder geocoder;
     public static OTMAPI otmapi;
     public static MainActivity ma;
+    public static Point myPosition;
     private static TextView t_x_message;
     private UserLocationLayer userLocationLayer;
-    private Point myLocation;
-    private CoordinatorLayout rootCoordinatorLayout;
-    private LocationManager locationManager;
-    private static final double DESIRED_ACCURACY = 0;
-    private static final long MINIMAL_TIME = 1000;
-    private static final double MINIMAL_DISTANCE = 1;
-    private static final boolean USE_IN_BACKGROUND = false;
-    public static final int COMFORTABLE_ZOOM_LEVEL = 18;
-    private LocationListener myLocationListener;
+    private Handler mHandler = new Handler();
 
     @SuppressLint("ResourceAsColor")
     @Override
@@ -96,43 +82,29 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         t_x_message.setVisibility(View.INVISIBLE);
         super.onCreate(savedInstanceState);
 
-
-        locationManager = MapKitFactory.getInstance().createLocationManager();
-        myLocationListener = new LocationListener() {
-            @Override
-            public void onLocationUpdated(Location location) {
-                if (myLocation == null) {
-                    moveCamera(location.getPosition(), COMFORTABLE_ZOOM_LEVEL);
-                }
-                myLocation = location.getPosition();
-                SetPlacesInMap(myLocation.getLongitude(), myLocation.getLatitude());
-            }
-
-            @Override
-            public void onLocationStatusUpdated(LocationStatus locationStatus) {
-                if (locationStatus == LocationStatus.NOT_AVAILABLE) {
-                    System.out.println("sdncvoadsjv");
-                }
-            }
-        };
         mapView.setZoomFocusPoint(new ScreenPoint(5.f, 4.f));
-        chekLocationAccess();
+        cheсkLocationAccess();
 
-
+        mHandler.removeCallbacks(PlacesUpdater);
     }
 
-    private void moveCamera(Point point, float zoom) {
-        mapView.getMap().move(
-                new CameraPosition(point, zoom, 0.0f, 0.0f),
-                new Animation(Animation.Type.SMOOTH, 1),
-                null);
-    }
-    public void SetPlacesInMap(double lon, double lat){
+    private Runnable PlacesUpdater = new Runnable() {
+        @Override
+        public void run() {
+            if (myPosition.getLatitude() != 0.0){
+                SetPlacesInMap(myPosition);
+                mHandler.postDelayed(this, 60000);
+            } else {mHandler.postDelayed(this, 1000);}
+        }
+    };
+
+    public void SetPlacesInMap(Point position){
+        Log.e("lon, lat", position.getLongitude() +" "+position.getLatitude());
         ServiceToGetPlaces service = otmapi.CreateService(ServiceToGetPlaces.class);
         Call<ResponseOTM> call = service.getPlaces(
-                1800,
-                lon,
-                lat,
+                1500,
+                position.getLongitude(),
+                position.getLatitude(),
                 KINDS_OF_PLACES,
                 API_OTM
         );
@@ -140,40 +112,49 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
             @RequiresApi(api = Build.VERSION_CODES.Q)
             @Override
             public void onResponse(Call<ResponseOTM> call, Response<ResponseOTM> response) {
-
+                Log.e("url", response.toString());
                 if (response.body() != null) {
                     for (int i = 0; i < response.body().features.size(); i++) {
-                        double lon = response.body().features.get(i).geometry.coordinates.get(1);
-                        double lat = response.body().features.get(i).geometry.coordinates.get(0);
-                        String name = response.body().features.get(i).properties.name;
-
+                        Feature card = response.body().features.get(i);
+                        double lon = card.geometry.coordinates.get(1);
+                        double lat = card.geometry.coordinates.get(0);
                         Point target = new Point(lon, lat);
                         mapView.getMap().getMapObjects()
-                                .addPlacemark(target, ImageProvider.fromBitmap(MainActivity.drawSimpleBitmap(name)))
-
-                                .addTapListener(new MapObjectTapListener() {
-                                    @Override
-                                    public boolean onMapObjectTap(@NonNull MapObject mapObject, @NonNull Point point) {
-                                        TextView tx = new TextView(ma);
-                                        tx.setText(name);
-                                        tx.setTextSize(15);
-                                        mapView.addView(tx);
-                                        return false;
-                                    }
-                                });
-
-
-                        mapView.getMap().move(
-                                new CameraPosition(target, 4.5f, 3.0f, 1.0f),
-                                new Animation(Animation.Type.LINEAR, 3),
-                                null);
-
+                                .addPlacemark(target, ImageProvider.fromBitmap(MainActivity.drawSimpleBitmap("")))
+                                .addTapListener(CreateMapObjectTapListener(card, card.properties.dist.toString()));
                     }
                 }
             }
             @Override
             public void onFailure(Call<ResponseOTM> call, Throwable t) {
-                Log.e("!SomethingWentWrong!", t.toString());
+                Log.e("!SomethingWentWrong(P)!", t.toString());
+                TextView View_of_Fail = new TextView(MainActivity.this);
+                View_of_Fail.setText(t.toString());
+                mapView.addView(View_of_Fail);
+            }
+        });
+    }
+
+    public void GetInfoAbout(String xid, String distance){
+        Log.e("xid", xid);
+        ServiceToGetInfoAboutPlaces service = otmapi.CreateService(ServiceToGetInfoAboutPlaces.class);
+        Call<ResponseOTMInf> call = service.getInfo(
+                xid,
+                API_OTM
+        );
+        call.enqueue(new Callback<ResponseOTMInf>() {
+            @RequiresApi(api = Build.VERSION_CODES.Q)
+            @Override
+            public void onResponse(Call<ResponseOTMInf> call, Response<ResponseOTMInf> response) {
+                Log.e("url", response.body().getAddress().toString());
+                if (response.body() != null) {
+                    PlaceInfoDialogFragment newFragment = new PlaceInfoDialogFragment(response, distance);
+                    newFragment.show(getSupportFragmentManager().beginTransaction(), "info");
+                }
+            }
+            @Override
+            public void onFailure(Call<ResponseOTMInf> call, Throwable t) {
+                Log.e("!SomethingWentWrong(I)!", t.toString());
                 TextView View_of_Fail = new TextView(MainActivity.this);
                 View_of_Fail.setText(t.toString());
                 mapView.addView(View_of_Fail);
@@ -188,41 +169,27 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         super.onStop();
     }
 
-    public void chekLocationAccess (){
+    private MapObjectTapListener CreateMapObjectTapListener(Feature card, String distance) {
+        MapObjectTapListener MOTL = (mapObject, point) -> {
+            GetInfoAbout(card.properties.xid,distance);
+            return true;
+        };
+        return MOTL;
+    }
+
+    public void cheсkLocationAccess (){
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
                         PackageManager.PERMISSION_GRANTED) {
             MapKit mapKit = MapKitFactory.getInstance();
-
             userLocationLayer = mapKit.createUserLocationLayer(mapView.getMapWindow());
             userLocationLayer.setVisible(true);
-
-            userLocationLayer.setHeadingEnabled(true);
-            userLocationLayer.setObjectListener((UserLocationObjectListener) this);
+            userLocationLayer.setHeadingEnabled(false);
+            userLocationLayer.setObjectListener(this);
         } else {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-            return;
         }
-    }
-    @Override
-    public void onObjectAdded(UserLocationView userLocationView) {
-        userLocationLayer.setAnchor(
-                new PointF((float)(mapView.getWidth() * 0.5), (float)(mapView.getHeight() * 0.5)),
-                new PointF((float)(mapView.getWidth() * 0.5), (float)(mapView.getHeight() * 0.83)));
-
-        userLocationView.getAccuracyCircle().setStrokeColor(BLUE);
-        //userLocationLayer.setAutoZoomEnabled(true);
-    }
-
-    @Override
-    public void onObjectRemoved(@NonNull UserLocationView userLocationView) {
-
-    }
-
-    @Override
-    public void onObjectUpdated(@NonNull UserLocationView userLocationView, @NonNull ObjectEvent objectEvent) {
-
     }
 
     @Override
@@ -232,12 +199,6 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         mapView.onStart();
     }
 
-    public static void clearTableView(ViewGroup tblview){
-        for (View i : getAllChildren(tblview)) {
-            if (i instanceof TextView)
-                ((ViewGroup) tblview).removeView(i);
-        }
-    }
 
     public static boolean checkConnection(){
         if (hasConnection()){
@@ -253,24 +214,6 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
             return false;
         }
     }
-    public static ArrayList<View> getAllChildren(View v) {
-        if (!(v instanceof ViewGroup)) {
-            ArrayList<View> viewArrayList = new ArrayList<View>();
-            viewArrayList.add(v);
-            return viewArrayList;
-        }
-        ArrayList<View> result = new ArrayList<View>();
-        ViewGroup viewGroup = (ViewGroup) v;
-        for (int i = 0; i < viewGroup.getChildCount(); i++) {
-            View child = viewGroup.getChildAt(i);
-            ArrayList<View> viewArrayList = new ArrayList<View>();
-            viewArrayList.add(v);
-            viewArrayList.addAll(getAllChildren(child));
-            result.addAll(viewArrayList);
-        }
-        return result;
-    }
-
 
     public static boolean hasConnection() {
         ConnectivityManager cm = (ConnectivityManager) ma.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -300,5 +243,28 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         //canvas.drawText(text, picSize / 2,
          //       picSize / 2 - ((paint.descent() + paint.ascent()) / 2), paint);
         return bitmap;
+    }
+
+    @Override
+    public void onObjectAdded(@NonNull UserLocationView userLocationView) {
+        PointF mWgW = new PointF((float)(mapView.getWidth() * 0.5), (float)(mapView.getHeight() * 0.5));
+        PointF mWgW83 = new PointF((float)(mapView.getWidth() * 0.5), (float)(mapView.getHeight() * 0.83));
+        userLocationLayer.setAnchor(mWgW, mWgW83);
+        userLocationLayer.setAutoZoomEnabled(true);
+
+        userLocationView.getAccuracyCircle().setFillColor(Color.BLUE & 0x99ffffff);
+        mHandler.postDelayed(PlacesUpdater, 0);
+    }
+
+    @Override
+    public void onObjectRemoved(@NonNull UserLocationView userLocationView) {
+
+    }
+
+    @Override
+    public void onObjectUpdated(@NonNull UserLocationView userLocationView, @NonNull ObjectEvent objectEvent) {
+        double lat = userLocationView.getPin().getGeometry().getLatitude();
+        double lon = userLocationView.getPin().getGeometry().getLongitude();
+        myPosition = new Point(lat, lon);
     }
 }

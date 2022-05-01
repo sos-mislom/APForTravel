@@ -1,13 +1,10 @@
 package com.example.shnyagashnyajnaya.OTMAPI;
 
 
-import static com.example.shnyagashnyajnaya.OTMAPI.APIConfig.LANGUAGE;
-
 import com.example.shnyagashnyajnaya.OTMAPI.ResponseOTM.ResponseOTM;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
-import retrofit2.http.Header;
 import retrofit2.http.Query;
 
 public interface ServiceToGetPlaces {

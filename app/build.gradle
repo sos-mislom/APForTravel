@@ -30,8 +30,6 @@ android {
 dependencies {
     // yx_api
     implementation 'com.yandex.android:maps.mobile:4.0.0-lite'
-    // okhttp3
-    implementation 'com.squareup.okhttp3:okhttp:3.10.0'
     // gson
     implementation 'com.google.code.gson:gson:2.9.0'
     // retrofit
