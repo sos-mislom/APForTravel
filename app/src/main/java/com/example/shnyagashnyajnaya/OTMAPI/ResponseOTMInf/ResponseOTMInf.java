@@ -1,32 +1,59 @@
 
 package com.example.shnyagashnyajnaya.OTMAPI.ResponseOTMInf;
 
-import java.util.HashMap;
-import java.util.Map;
 
 import android.os.Parcelable;
 import android.os.Parcelable.Creator;
 import android.os.Parcelable.Creator;
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
 
 
 public class ResponseOTMInf implements Parcelable
 {
 
+    @SerializedName("xid")
+    @Expose
     private String xid;
+    @SerializedName("name")
+    @Expose
     private String name;
+    @SerializedName("address")
+    @Expose
     private Address address;
+    @SerializedName("rate")
+    @Expose
     private String rate;
+    @SerializedName("osm")
+    @Expose
     private String osm;
+    @SerializedName("wikidata")
+    @Expose
     private String wikidata;
+    @SerializedName("kinds")
+    @Expose
     private String kinds;
+    @SerializedName("sources")
+    @Expose
     private Sources sources;
+    @SerializedName("otm")
+    @Expose
     private String otm;
+    @SerializedName("wikipedia")
+    @Expose
     private String wikipedia;
+    @SerializedName("image")
+    @Expose
     private String image;
+    @SerializedName("preview")
+    @Expose
     private Preview preview;
+    @SerializedName("wikipedia_extracts")
+    @Expose
     private WikipediaExtracts wikipediaExtracts;
+    @SerializedName("point")
+    @Expose
     private Point point;
-    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
     public final static Creator<ResponseOTMInf> CREATOR = new Creator<ResponseOTMInf>() {
 
 
@@ -59,7 +86,6 @@ public class ResponseOTMInf implements Parcelable
         this.preview = ((Preview) in.readValue((Preview.class.getClassLoader())));
         this.wikipediaExtracts = ((WikipediaExtracts) in.readValue((WikipediaExtracts.class.getClassLoader())));
         this.point = ((Point) in.readValue((Point.class.getClassLoader())));
-        this.additionalProperties = ((Map<String, Object> ) in.readValue((Map.class.getClassLoader())));
     }
 
     public ResponseOTMInf() {
@@ -73,22 +99,12 @@ public class ResponseOTMInf implements Parcelable
         this.xid = xid;
     }
 
-    public ResponseOTMInf withXid(String xid) {
-        this.xid = xid;
-        return this;
-    }
-
     public String getName() {
         return name;
     }
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public ResponseOTMInf withName(String name) {
-        this.name = name;
-        return this;
     }
 
     public Address getAddress() {
@@ -99,22 +115,12 @@ public class ResponseOTMInf implements Parcelable
         this.address = address;
     }
 
-    public ResponseOTMInf withAddress(Address address) {
-        this.address = address;
-        return this;
-    }
-
     public String getRate() {
         return rate;
     }
 
     public void setRate(String rate) {
         this.rate = rate;
-    }
-
-    public ResponseOTMInf withRate(String rate) {
-        this.rate = rate;
-        return this;
     }
 
     public String getOsm() {
@@ -125,22 +131,12 @@ public class ResponseOTMInf implements Parcelable
         this.osm = osm;
     }
 
-    public ResponseOTMInf withOsm(String osm) {
-        this.osm = osm;
-        return this;
-    }
-
     public String getWikidata() {
         return wikidata;
     }
 
     public void setWikidata(String wikidata) {
         this.wikidata = wikidata;
-    }
-
-    public ResponseOTMInf withWikidata(String wikidata) {
-        this.wikidata = wikidata;
-        return this;
     }
 
     public String getKinds() {
@@ -151,22 +147,12 @@ public class ResponseOTMInf implements Parcelable
         this.kinds = kinds;
     }
 
-    public ResponseOTMInf withKinds(String kinds) {
-        this.kinds = kinds;
-        return this;
-    }
-
     public Sources getSources() {
         return sources;
     }
 
     public void setSources(Sources sources) {
         this.sources = sources;
-    }
-
-    public ResponseOTMInf withSources(Sources sources) {
-        this.sources = sources;
-        return this;
     }
 
     public String getOtm() {
@@ -177,22 +163,12 @@ public class ResponseOTMInf implements Parcelable
         this.otm = otm;
     }
 
-    public ResponseOTMInf withOtm(String otm) {
-        this.otm = otm;
-        return this;
-    }
-
     public String getWikipedia() {
         return wikipedia;
     }
 
     public void setWikipedia(String wikipedia) {
         this.wikipedia = wikipedia;
-    }
-
-    public ResponseOTMInf withWikipedia(String wikipedia) {
-        this.wikipedia = wikipedia;
-        return this;
     }
 
     public String getImage() {
@@ -203,22 +179,12 @@ public class ResponseOTMInf implements Parcelable
         this.image = image;
     }
 
-    public ResponseOTMInf withImage(String image) {
-        this.image = image;
-        return this;
-    }
-
     public Preview getPreview() {
         return preview;
     }
 
     public void setPreview(Preview preview) {
         this.preview = preview;
-    }
-
-    public ResponseOTMInf withPreview(Preview preview) {
-        this.preview = preview;
-        return this;
     }
 
     public WikipediaExtracts getWikipediaExtracts() {
@@ -229,35 +195,12 @@ public class ResponseOTMInf implements Parcelable
         this.wikipediaExtracts = wikipediaExtracts;
     }
 
-    public ResponseOTMInf withWikipediaExtracts(WikipediaExtracts wikipediaExtracts) {
-        this.wikipediaExtracts = wikipediaExtracts;
-        return this;
-    }
-
     public Point getPoint() {
         return point;
     }
 
     public void setPoint(Point point) {
         this.point = point;
-    }
-
-    public ResponseOTMInf withPoint(Point point) {
-        this.point = point;
-        return this;
-    }
-
-    public Map<String, Object> getAdditionalProperties() {
-        return this.additionalProperties;
-    }
-
-    public void setAdditionalProperty(String name, Object value) {
-        this.additionalProperties.put(name, value);
-    }
-
-    public ResponseOTMInf withAdditionalProperty(String name, Object value) {
-        this.additionalProperties.put(name, value);
-        return this;
     }
 
     public void writeToParcel(android.os.Parcel dest, int flags) {
@@ -275,7 +218,6 @@ public class ResponseOTMInf implements Parcelable
         dest.writeValue(preview);
         dest.writeValue(wikipediaExtracts);
         dest.writeValue(point);
-        dest.writeValue(additionalProperties);
     }
 
     public int describeContents() {

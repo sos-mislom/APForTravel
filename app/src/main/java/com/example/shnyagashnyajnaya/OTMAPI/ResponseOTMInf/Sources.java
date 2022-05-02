@@ -1,21 +1,24 @@
 
 package com.example.shnyagashnyajnaya.OTMAPI.ResponseOTMInf;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import android.os.Parcelable;
 import android.os.Parcelable.Creator;
 import android.os.Parcelable.Creator;
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
 
 
 public class Sources implements Parcelable
 {
 
+    @SerializedName("geometry")
+    @Expose
     private String geometry;
+    @SerializedName("attributes")
+    @Expose
     private List<String> attributes = null;
-    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
     public final static Creator<Sources> CREATOR = new Creator<Sources>() {
 
 
@@ -36,7 +39,6 @@ public class Sources implements Parcelable
     protected Sources(android.os.Parcel in) {
         this.geometry = ((String) in.readValue((String.class.getClassLoader())));
         in.readList(this.attributes, (java.lang.String.class.getClassLoader()));
-        this.additionalProperties = ((Map<String, Object> ) in.readValue((Map.class.getClassLoader())));
     }
 
     public Sources() {
@@ -50,11 +52,6 @@ public class Sources implements Parcelable
         this.geometry = geometry;
     }
 
-    public Sources withGeometry(String geometry) {
-        this.geometry = geometry;
-        return this;
-    }
-
     public List<String> getAttributes() {
         return attributes;
     }
@@ -63,28 +60,9 @@ public class Sources implements Parcelable
         this.attributes = attributes;
     }
 
-    public Sources withAttributes(List<String> attributes) {
-        this.attributes = attributes;
-        return this;
-    }
-
-    public Map<String, Object> getAdditionalProperties() {
-        return this.additionalProperties;
-    }
-
-    public void setAdditionalProperty(String name, Object value) {
-        this.additionalProperties.put(name, value);
-    }
-
-    public Sources withAdditionalProperty(String name, Object value) {
-        this.additionalProperties.put(name, value);
-        return this;
-    }
-
     public void writeToParcel(android.os.Parcel dest, int flags) {
         dest.writeValue(geometry);
         dest.writeList(attributes);
-        dest.writeValue(additionalProperties);
     }
 
     public int describeContents() {

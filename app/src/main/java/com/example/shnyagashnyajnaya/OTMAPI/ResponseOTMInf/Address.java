@@ -1,29 +1,50 @@
 
 package com.example.shnyagashnyajnaya.OTMAPI.ResponseOTMInf;
 
-import java.util.HashMap;
-import java.util.Map;
 
 import android.os.Parcelable;
 import android.os.Parcelable.Creator;
 import android.os.Parcelable.Creator;
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
 
 
 public class Address implements Parcelable
 {
 
+    @SerializedName("city")
+    @Expose
     private String city;
+    @SerializedName("road")
+    @Expose
     private String road;
+    @SerializedName("house")
+    @Expose
     private String house;
+    @SerializedName("state")
+    @Expose
     private String state;
+    @SerializedName("county")
+    @Expose
     private String county;
+    @SerializedName("country")
+    @Expose
     private String country;
+    @SerializedName("postcode")
+    @Expose
     private String postcode;
+    @SerializedName("country_code")
+    @Expose
     private String countryCode;
+    @SerializedName("house_number")
+    @Expose
     private String houseNumber;
+    @SerializedName("city_district")
+    @Expose
     private String cityDistrict;
+    @SerializedName("neighbourhood")
+    @Expose
     private String neighbourhood;
-    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
     public final static Creator<Address> CREATOR = new Creator<Address>() {
 
 
@@ -53,7 +74,6 @@ public class Address implements Parcelable
         this.houseNumber = ((String) in.readValue((String.class.getClassLoader())));
         this.cityDistrict = ((String) in.readValue((String.class.getClassLoader())));
         this.neighbourhood = ((String) in.readValue((String.class.getClassLoader())));
-        this.additionalProperties = ((Map<String, Object> ) in.readValue((Map.class.getClassLoader())));
     }
 
     public Address() {
@@ -67,22 +87,12 @@ public class Address implements Parcelable
         this.city = city;
     }
 
-    public Address withCity(String city) {
-        this.city = city;
-        return this;
-    }
-
     public String getRoad() {
         return road;
     }
 
     public void setRoad(String road) {
         this.road = road;
-    }
-
-    public Address withRoad(String road) {
-        this.road = road;
-        return this;
     }
 
     public String getHouse() {
@@ -93,22 +103,12 @@ public class Address implements Parcelable
         this.house = house;
     }
 
-    public Address withHouse(String house) {
-        this.house = house;
-        return this;
-    }
-
     public String getState() {
         return state;
     }
 
     public void setState(String state) {
         this.state = state;
-    }
-
-    public Address withState(String state) {
-        this.state = state;
-        return this;
     }
 
     public String getCounty() {
@@ -119,22 +119,12 @@ public class Address implements Parcelable
         this.county = county;
     }
 
-    public Address withCounty(String county) {
-        this.county = county;
-        return this;
-    }
-
     public String getCountry() {
         return country;
     }
 
     public void setCountry(String country) {
         this.country = country;
-    }
-
-    public Address withCountry(String country) {
-        this.country = country;
-        return this;
     }
 
     public String getPostcode() {
@@ -145,22 +135,12 @@ public class Address implements Parcelable
         this.postcode = postcode;
     }
 
-    public Address withPostcode(String postcode) {
-        this.postcode = postcode;
-        return this;
-    }
-
     public String getCountryCode() {
         return countryCode;
     }
 
     public void setCountryCode(String countryCode) {
         this.countryCode = countryCode;
-    }
-
-    public Address withCountryCode(String countryCode) {
-        this.countryCode = countryCode;
-        return this;
     }
 
     public String getHouseNumber() {
@@ -171,11 +151,6 @@ public class Address implements Parcelable
         this.houseNumber = houseNumber;
     }
 
-    public Address withHouseNumber(String houseNumber) {
-        this.houseNumber = houseNumber;
-        return this;
-    }
-
     public String getCityDistrict() {
         return cityDistrict;
     }
@@ -184,35 +159,12 @@ public class Address implements Parcelable
         this.cityDistrict = cityDistrict;
     }
 
-    public Address withCityDistrict(String cityDistrict) {
-        this.cityDistrict = cityDistrict;
-        return this;
-    }
-
     public String getNeighbourhood() {
         return neighbourhood;
     }
 
     public void setNeighbourhood(String neighbourhood) {
         this.neighbourhood = neighbourhood;
-    }
-
-    public Address withNeighbourhood(String neighbourhood) {
-        this.neighbourhood = neighbourhood;
-        return this;
-    }
-
-    public Map<String, Object> getAdditionalProperties() {
-        return this.additionalProperties;
-    }
-
-    public void setAdditionalProperty(String name, Object value) {
-        this.additionalProperties.put(name, value);
-    }
-
-    public Address withAdditionalProperty(String name, Object value) {
-        this.additionalProperties.put(name, value);
-        return this;
     }
 
     public void writeToParcel(android.os.Parcel dest, int flags) {
@@ -227,7 +179,6 @@ public class Address implements Parcelable
         dest.writeValue(houseNumber);
         dest.writeValue(cityDistrict);
         dest.writeValue(neighbourhood);
-        dest.writeValue(additionalProperties);
     }
 
     public int describeContents() {

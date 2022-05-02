@@ -1,20 +1,26 @@
 
 package com.example.shnyagashnyajnaya.OTMAPI.ResponseOTMInf;
 
-import java.util.HashMap;
-import java.util.Map;
+
 import android.os.Parcelable;
 import android.os.Parcelable.Creator;
 import android.os.Parcelable.Creator;
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
 
 
 public class WikipediaExtracts implements Parcelable
 {
 
-    private String title="";
-    private String text="";
-    private String html="";
-    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+    @SerializedName("title")
+    @Expose
+    private String title;
+    @SerializedName("text")
+    @Expose
+    private String text;
+    @SerializedName("html")
+    @Expose
+    private String html;
     public final static Creator<WikipediaExtracts> CREATOR = new Creator<WikipediaExtracts>() {
 
 
@@ -36,7 +42,6 @@ public class WikipediaExtracts implements Parcelable
         this.title = ((String) in.readValue((String.class.getClassLoader())));
         this.text = ((String) in.readValue((String.class.getClassLoader())));
         this.html = ((String) in.readValue((String.class.getClassLoader())));
-        this.additionalProperties = ((Map<String, Object> ) in.readValue((Map.class.getClassLoader())));
     }
 
     public WikipediaExtracts() {
@@ -50,22 +55,12 @@ public class WikipediaExtracts implements Parcelable
         this.title = title;
     }
 
-    public WikipediaExtracts withTitle(String title) {
-        this.title = title;
-        return this;
-    }
-
     public String getText() {
         return text;
     }
 
     public void setText(String text) {
         this.text = text;
-    }
-
-    public WikipediaExtracts withText(String text) {
-        this.text = text;
-        return this;
     }
 
     public String getHtml() {
@@ -76,29 +71,10 @@ public class WikipediaExtracts implements Parcelable
         this.html = html;
     }
 
-    public WikipediaExtracts withHtml(String html) {
-        this.html = html;
-        return this;
-    }
-
-    public Map<String, Object> getAdditionalProperties() {
-        return this.additionalProperties;
-    }
-
-    public void setAdditionalProperty(String name, Object value) {
-        this.additionalProperties.put(name, value);
-    }
-
-    public WikipediaExtracts withAdditionalProperty(String name, Object value) {
-        this.additionalProperties.put(name, value);
-        return this;
-    }
-
     public void writeToParcel(android.os.Parcel dest, int flags) {
         dest.writeValue(title);
         dest.writeValue(text);
         dest.writeValue(html);
-        dest.writeValue(additionalProperties);
     }
 
     public int describeContents() {
