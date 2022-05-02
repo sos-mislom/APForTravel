@@ -10,12 +10,15 @@
     <LinearLayout
         android:id="@+id/MainLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical">
+
         <com.yandex.mapkit.mapview.MapView
             android:id="@+id/mapview"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            />
+            android:layout_height="match_parent" >
+        </com.yandex.mapkit.mapview.MapView>
+
     </LinearLayout>
+    <include layout="@layout/bottom_sheet_persistent" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

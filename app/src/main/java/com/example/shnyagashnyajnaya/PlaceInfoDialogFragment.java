@@ -56,6 +56,8 @@ public class PlaceInfoDialogFragment  extends DialogFragment {
             bit = R.drawable.nature;
         } else if (kinds.contains("architecture")){
             bit = R.drawable.buildings;
+        }else if (kinds.contains("other")){
+            bit = R.drawable.forphoto;
         }else{
             bit = R.drawable.unknown;
         }

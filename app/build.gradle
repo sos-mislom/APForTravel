@@ -28,6 +28,8 @@ android {
 }
 
 dependencies {
+    //bottomsheet
+    implementation 'com.cocosw:bottomsheet:1.+@aar'
     // yx_api
     implementation 'com.yandex.android:maps.mobile:4.0.0-lite'
     // gson

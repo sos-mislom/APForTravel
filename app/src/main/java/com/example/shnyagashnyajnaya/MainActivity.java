@@ -15,6 +15,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PointF;
+import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.location.Geocoder;
@@ -22,11 +23,17 @@ import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.TableLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -42,6 +49,8 @@ import com.example.shnyagashnyajnaya.OTMAPI.ResponseOTM.ResponseOTM;
 import com.example.shnyagashnyajnaya.OTMAPI.ResponseOTMInf.ResponseOTMInf;
 import com.example.shnyagashnyajnaya.OTMAPI.ServiceToGetInfoAboutPlaces;
 import com.example.shnyagashnyajnaya.OTMAPI.ServiceToGetPlaces;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.yandex.mapkit.Animation;
 import com.yandex.mapkit.MapKit;
 import com.yandex.mapkit.MapKitFactory;
 import com.yandex.mapkit.ScreenPoint;
@@ -59,6 +68,7 @@ import com.yandex.mapkit.user_location.UserLocationObjectListener;
 import com.yandex.mapkit.user_location.UserLocationView;
 import com.yandex.runtime.image.ImageProvider;
 
+import java.security.AccessController;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -69,22 +79,38 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity implements UserLocationObjectListener, CameraListener{
-
     public static MapView mapView;
     public static Geocoder geocoder;
     public static Point myPosition;
     private UserLocationLayer userLocationLayer;
+    public static BottomSheetBehavior bottomSheetBehavior;
     private final Handler HandlerPlacesUpdater = new Handler();
     private final Handler HandlerCheckAllAccess = new Handler();
-    private boolean followUserLocation;
-    Bitmap forPhoto;
-    Bitmap buildings;
-    Bitmap historical;
-    Bitmap unknown;
-    Bitmap industrial;
-    Bitmap nature;
 
+    public static TableLayout content_layout;
+    public static TableLayout name_layout;
+
+    private boolean followUserLocation;
+
+    private Bitmap forPhoto;
+    private Bitmap buildings;
+    private Bitmap historical;
+    private Bitmap unknown;
+    private Bitmap industrial;
+    private Bitmap nature;
+    private Bitmap list;
+    private Bitmap loupe;
+    private Bitmap target;
+    private Bitmap wing;
+
+    private Typeface tf;
+    private int counter;
+    public static TextView tx_town;
+
+    public static ArrayList<String> regions;
     List<MapObjectTapListener> mapObjectTapListeners = new ArrayList<>();
+
+    public static AsyncTask<String, Void, ArrayList<String>> thread;
 
     @SuppressLint("ResourceAsColor")
     @Override
@@ -93,7 +119,9 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         MapKitFactory.initialize(this);
         setContentView(R.layout.activity_main);
         geocoder = new Geocoder(this, Locale.getDefault());
+        tx_town = new TextView(MainActivity.this);
         mapView = (MapView) findViewById(R.id.mapview);
+
         @SuppressLint("UseCompatLoadingForDrawables") Drawable d = getResources().getDrawable(R.drawable.forphoto);
         forPhoto = ((BitmapDrawable) d).getBitmap();
         @SuppressLint("UseCompatLoadingForDrawables") Drawable d1 = getResources().getDrawable(R.drawable.buildings);
@@ -107,12 +135,75 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         @SuppressLint("UseCompatLoadingForDrawables") Drawable d5 = getResources().getDrawable(R.drawable.nature);
         nature = ((BitmapDrawable) d5).getBitmap();
 
+        @SuppressLint("UseCompatLoadingForDrawables") Drawable d6 = getResources().getDrawable(R.drawable.list);
+        list = ((BitmapDrawable) d6).getBitmap();
+        @SuppressLint("UseCompatLoadingForDrawables") Drawable d7 = getResources().getDrawable(R.drawable.loupe);
+        loupe = ((BitmapDrawable) d7).getBitmap();
+        @SuppressLint("UseCompatLoadingForDrawables") Drawable d8 = getResources().getDrawable(R.drawable.target);
+        target = ((BitmapDrawable) d8).getBitmap();
+        @SuppressLint("UseCompatLoadingForDrawables") Drawable d9 = getResources().getDrawable(R.drawable.wing);
+        wing = ((BitmapDrawable) d9).getBitmap();
+
+        tf = Typeface.createFromAsset(getAssets(), "karlocharm.otf");
+
+        name_layout = (TableLayout) findViewById(R.id.nameofsheet);
+        content_layout = (TableLayout) findViewById(R.id.content);
+
+        LinearLayout llBottomSheet = (LinearLayout) findViewById(R.id.bottomSheet);
+        bottomSheetBehavior = BottomSheetBehavior.from(llBottomSheet);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        bottomSheetBehavior.setHideable(true);
+
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         String coords = preferences.getString("last_coords", "");
         if (coords.length() > 0){
             List<String> coordList = Arrays.asList(coords.split(" "));
             myPosition = new Point(Double.parseDouble(coordList.get(0)), Double.parseDouble(coordList.get(1)));
         }
+
+        ImageButton settings = new ImageButton(MainActivity.this);
+        settings.setImageDrawable(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(wing, 20, 20, true)));
+        settings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                clearTableView(name_layout);
+                clearTableView(content_layout);
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+            }
+        });
+
+        ImageButton search = new ImageButton(MainActivity.this);
+        search.setImageDrawable(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(loupe, 20, 20, true)));
+        search.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                clearTableView(name_layout);
+                clearTableView(content_layout);
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+            }
+        });
+
+        ImageButton favorites = new ImageButton(MainActivity.this);
+        favorites.setImageDrawable(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(list, 20, 20, true)));
+        favorites.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                clearTableView(name_layout);
+                clearTableView(content_layout);
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+            }
+        });
+
+        ImageButton findUser = new ImageButton(MainActivity.this);
+
+        findUser.setImageDrawable(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(target, 50, 50, true)));
+        findUser.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                followUserLocation = true;
+            }
+        });
+
         super.onCreate(savedInstanceState);
 
         mapView.setZoomFocusPoint(new ScreenPoint(5.f, 4.f));
@@ -132,11 +223,18 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
             }
         }
     };
-
     private final Runnable PlacesUpdater = new Runnable() {
         @Override
         public void run() {
             if (myPosition.getLatitude() != 0.0){
+                if (counter == 0){
+                    counter++;
+                    mapView.getMap().move(
+                            new CameraPosition(myPosition, 11.5f, 3.0f, 1.0f),
+                            new Animation(Animation.Type.LINEAR, 5),
+                            null);
+                    thread = new asyncTaskGetGeoLocation(MainActivity.this, myPosition, tf).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                }
                 SetPlacesInMap(myPosition);
                 HandlerPlacesUpdater.postDelayed(this, 60000);
                 PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit()
@@ -181,13 +279,15 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
                             bit = nature;
                         } else if (kinds.contains("architecture")){
                             bit = buildings;
+                        }else if (kinds.contains("other")){
+                            bit = forPhoto;
                         }else{
                             bit = unknown;
                         }
 
                         MapObjectTapListener mapObjectTapListener = (mapObject, point) -> {
                             GetInfoAbout(card.properties.xid, card.properties.dist.toString());
-                            return false;
+                            return true;
                         };
 
                         mapObjectTapListeners.add(mapObjectTapListener);
@@ -212,7 +312,28 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
             }
         });
     }
-
+    public static void clearTableView(ViewGroup tblview){
+        for (View i : getAllChildren(tblview)) {
+            ((ViewGroup) tblview).removeView(i);
+        }
+    }
+    public static ArrayList<View> getAllChildren(View v) {
+        if (!(v instanceof ViewGroup)) {
+            ArrayList<View> viewArrayList = new ArrayList<View>();
+            viewArrayList.add(v);
+            return viewArrayList;
+        }
+        ArrayList<View> result = new ArrayList<View>();
+        ViewGroup viewGroup = (ViewGroup) v;
+        for (int i = 0; i < viewGroup.getChildCount(); i++) {
+            View child = viewGroup.getChildAt(i);
+            ArrayList<View> viewArrayList = new ArrayList<View>();
+            viewArrayList.add(v);
+            viewArrayList.addAll(getAllChildren(child));
+            result.addAll(viewArrayList);
+        }
+        return result;
+    }
     public void GetInfoAbout(String xid, String distance){
         Log.e("xid", xid);
         ServiceToGetInfoAboutPlaces service = OTMAPI.CreateService(ServiceToGetInfoAboutPlaces.class);
@@ -352,6 +473,7 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         userLocationView.getPin().setIcon(ImageProvider.fromBitmap(Bitmap.createScaledBitmap(bitmap1, 70, 70, true)));
         userLocationView.getArrow().setIcon(ImageProvider.fromBitmap(Bitmap.createScaledBitmap(bitmap1, 70, 70, true)));
         followUserLocation = false;
+
         userLocationView.getAccuracyCircle().setFillColor(Color.BLUE & 0x99ffffff);
         HandlerPlacesUpdater.postDelayed(PlacesUpdater, 0);
     }
@@ -363,6 +485,19 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
 
     @Override
     public void onCameraPositionChanged(Map m, CameraPosition cP, CameraUpdateReason cUR, boolean finished) {
+        if (regions != null && regions.size() > 0){
+            float zoom = cP.getZoom();
+            if (zoom > 12f){
+                tx_town.setText(regions.get(0));
+            }else if (zoom < 12f && zoom > 8f){
+                tx_town.setText(regions.get(1));
+            } else if (zoom < 8f && zoom  > 5f){
+                tx_town.setText(regions.get(2));
+            }else if (zoom < 5f){
+                tx_town.setText(regions.get(3));
+            }
+        }
+
         if (finished) {
             if (followUserLocation) {
                 setAnchor();
