@@ -30,7 +30,6 @@ import android.util.Log;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -43,7 +42,6 @@ import com.example.shnyagashnyajnaya.OTMAPI.ResponseOTM.ResponseOTM;
 import com.example.shnyagashnyajnaya.OTMAPI.ResponseOTMInf.ResponseOTMInf;
 import com.example.shnyagashnyajnaya.OTMAPI.ServiceToGetInfoAboutPlaces;
 import com.example.shnyagashnyajnaya.OTMAPI.ServiceToGetPlaces;
-import com.yandex.mapkit.Animation;
 import com.yandex.mapkit.MapKit;
 import com.yandex.mapkit.MapKitFactory;
 import com.yandex.mapkit.ScreenPoint;
@@ -52,24 +50,16 @@ import com.yandex.mapkit.layers.ObjectEvent;
 import com.yandex.mapkit.map.CameraListener;
 import com.yandex.mapkit.map.CameraPosition;
 import com.yandex.mapkit.map.CameraUpdateReason;
-import com.yandex.mapkit.map.CompositeIcon;
-import com.yandex.mapkit.map.IconStyle;
 import com.yandex.mapkit.map.Map;
-import com.yandex.mapkit.map.MapObjectCollection;
-import com.yandex.mapkit.map.MapObjectDragListener;
+import com.yandex.mapkit.map.MapObject;
 import com.yandex.mapkit.map.MapObjectTapListener;
-import com.yandex.mapkit.map.ModelStyle;
-import com.yandex.mapkit.map.PlacemarkAnimation;
-import com.yandex.mapkit.map.PlacemarkMapObject;
-import com.yandex.mapkit.map.PlacemarksStyler;
 import com.yandex.mapkit.mapview.MapView;
 import com.yandex.mapkit.user_location.UserLocationLayer;
 import com.yandex.mapkit.user_location.UserLocationObjectListener;
 import com.yandex.mapkit.user_location.UserLocationView;
 import com.yandex.runtime.image.ImageProvider;
-import com.yandex.runtime.model.ModelProvider;
-import com.yandex.runtime.ui_view.ViewProvider;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -87,12 +77,14 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
     private final Handler HandlerPlacesUpdater = new Handler();
     private final Handler HandlerCheckAllAccess = new Handler();
     private boolean followUserLocation;
-    Bitmap forphoto;
+    Bitmap forPhoto;
     Bitmap buildings;
     Bitmap historical;
     Bitmap unknown;
     Bitmap industrial;
     Bitmap nature;
+
+    List<MapObjectTapListener> mapObjectTapListeners = new ArrayList<>();
 
     @SuppressLint("ResourceAsColor")
     @Override
@@ -103,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         geocoder = new Geocoder(this, Locale.getDefault());
         mapView = (MapView) findViewById(R.id.mapview);
         @SuppressLint("UseCompatLoadingForDrawables") Drawable d = getResources().getDrawable(R.drawable.forphoto);
-        forphoto = ((BitmapDrawable) d).getBitmap();
+        forPhoto = ((BitmapDrawable) d).getBitmap();
         @SuppressLint("UseCompatLoadingForDrawables") Drawable d1 = getResources().getDrawable(R.drawable.buildings);
         buildings = ((BitmapDrawable) d1).getBitmap();
         @SuppressLint("UseCompatLoadingForDrawables") Drawable d2 = getResources().getDrawable(R.drawable.historical);
@@ -144,7 +136,6 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
     private final Runnable PlacesUpdater = new Runnable() {
         @Override
         public void run() {
-
             if (myPosition.getLatitude() != 0.0){
                 SetPlacesInMap(myPosition);
                 HandlerPlacesUpdater.postDelayed(this, 60000);
@@ -176,7 +167,7 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
                         Feature card = response.body().features.get(i);
                         double lon = card.geometry.coordinates.get(1);
                         double lat = card.geometry.coordinates.get(0);
-                        Bitmap bit=null;
+                        Bitmap bit;
                         String kinds = card.properties.kinds;
                         if (kinds.contains("historic")){
                             bit = historical;
@@ -194,9 +185,20 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
                             bit = unknown;
                         }
 
+                        MapObjectTapListener mapObjectTapListener = (mapObject, point) -> {
+                            GetInfoAbout(card.properties.xid, card.properties.dist.toString());
+                            return false;
+                        };
+
+                        mapObjectTapListeners.add(mapObjectTapListener);
+
                         mapView.getMap().getMapObjects()
-                                .addPlacemark(new Point(lon, lat), ImageProvider.fromBitmap(Bitmap.createScaledBitmap(bit, 50, 50, true)))
-                                .addTapListener(CreateMapObjectTapListener(card, card.properties.dist.toString()));
+                                .addPlacemark(new Point(lon, lat),
+                                        ImageProvider.fromBitmap(Bitmap.createScaledBitmap(bit,
+                                                50,
+                                                50,
+                                                true))
+                                ).addTapListener(mapObjectTapListener);
 
                     }
                 }
@@ -245,27 +247,26 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         MapKitFactory.getInstance().onStop();
         super.onStop();
     }
+
     @Override
     protected void onStart() {
         super.onStart();
         MapKitFactory.getInstance().onStart();
         mapView.onStart();
     }
-    private MapObjectTapListener CreateMapObjectTapListener(Feature card, String distance) {
-        return (mapObject, point) -> {
-            GetInfoAbout(card.properties.xid,distance);
-            return true;
-        };
-    }
+
+
     public void  setAnchor(){
         userLocationLayer.setAnchor(
                 new PointF((float)(mapView.getWidth() * 0.5), (float)(mapView.getHeight() * 0.5)),
                 new PointF((float)(mapView.getWidth() * 0.5), (float)(mapView.getHeight() * 0.83))
         );
     }
+
     public void  removeAnchor(){
         userLocationLayer.resetAnchor();
     }
+
     public void FindUser(){
         MapKit mapKit = MapKitFactory.getInstance();
         if (userLocationLayer == null){userLocationLayer = mapKit.createUserLocationLayer(mapView.getMapWindow());}
@@ -343,8 +344,6 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         return wifiInfo != null && wifiInfo.isConnected();
     }
 
-
-
     @Override
     public void onObjectAdded(@NonNull UserLocationView userLocationView) {
         setAnchor();
@@ -353,7 +352,6 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         userLocationView.getPin().setIcon(ImageProvider.fromBitmap(Bitmap.createScaledBitmap(bitmap1, 70, 70, true)));
         userLocationView.getArrow().setIcon(ImageProvider.fromBitmap(Bitmap.createScaledBitmap(bitmap1, 70, 70, true)));
         followUserLocation = false;
-        userLocationLayer.setAutoZoomEnabled(true);
         userLocationView.getAccuracyCircle().setFillColor(Color.BLUE & 0x99ffffff);
         HandlerPlacesUpdater.postDelayed(PlacesUpdater, 0);
     }
