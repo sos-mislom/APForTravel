@@ -139,7 +139,6 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
 
 
 
-
     @SuppressLint("ResourceAsColor")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -148,6 +147,7 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         setContentView(R.layout.activity_main);
         geocoder = new Geocoder(this, Locale.getDefault());
         tx_town = new TextView(MainActivity.this);
+
         ll = findViewById(R.id.SuperMainLayout);
         ma = MainActivity.this;
         mapView = (MapView) findViewById(R.id.mapview);
@@ -208,7 +208,7 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         }
 
         ImageButton settings = new ImageButton(MainActivity.this);
-        settings.setImageDrawable(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(wing, 20, 20, true)));
+        settings.setImageDrawable(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(wing, 30, 30, true)));
         settings.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -217,7 +217,11 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
                 newFragment.show(getSupportFragmentManager().beginTransaction(), "settings");
             }
         });
-        mapView.addView(settings);
+        CoordinatorLayout.LayoutParams params = new CoordinatorLayout.LayoutParams(
+                CoordinatorLayout.LayoutParams.WRAP_CONTENT, CoordinatorLayout.LayoutParams.WRAP_CONTENT);
+        params.gravity = Gravity.RIGHT;
+        params.setMargins(14,14,14,14);
+        ll.addView(settings, params);
         ImageButton favorites = new ImageButton(MainActivity.this);
         favorites.setImageDrawable(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(list, 50, 50, true)));
         ShapeAppearanceModel shapeAppearanceModelFavorites = new ShapeAppearanceModel()
