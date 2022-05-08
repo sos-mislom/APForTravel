@@ -1,5 +1,12 @@
 <resources>
     <string name="app_name">mITrip</string>
     <string name="error_permission_map">пермышын дениед</string>
-    <string name="addtofavorite">в планы</string>
+    <string name="addToFavorite">в планы</string>
+    <string name="alreadyInFavorite">уже в планах</string>
+    <string name="ok">применить</string>
+
+    <string name="error_permission_map_eng">permission denied</string>
+    <string name="addToFavorite_eng">add to favorite</string>
+    <string name="alreadyInFavorite_eng">already in favorite</string>
+    <string name="ok_eng">apply</string>
 </resources>

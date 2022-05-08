@@ -5,12 +5,13 @@ package com.example.shnyagashnyajnaya.OTMAPI.ResponseOTMInf;
 import android.os.Parcelable;
 import android.os.Parcelable.Creator;
 import android.os.Parcelable.Creator;
+
+import com.google.android.gms.common.api.Result;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
 
-public class ResponseOTMInf implements Parcelable
-{
+public class ResponseOTMInf implements Parcelable {
 
     @SerializedName("xid")
     @Expose
