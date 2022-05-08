@@ -64,7 +64,7 @@ public class asyncTaskGetGeoLocation extends AsyncTask<String, Void, ArrayList<S
         MainActivity.regions = result;
         if (ll.findViewById(1) instanceof TextView){
             tx_town.setText(result.get(0));
-        } else{
+        } else if (result.size() >= 0){
             tx_town.setTextSize(30);
             tx_town.setTypeface(tf);
             tx_town.setId(1);

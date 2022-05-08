@@ -1,5 +1,6 @@
 package com.example.shnyagashnyajnaya;
 
+import static com.example.shnyagashnyajnaya.OTMAPI.APIConfig.ALLOWED_KINDS_OF_PLACES;
 import static com.example.shnyagashnyajnaya.OTMAPI.APIConfig.API_OTM;
 import static com.example.shnyagashnyajnaya.OTMAPI.APIConfig.API_YANDEX_MAP;
 import static com.example.shnyagashnyajnaya.OTMAPI.APIConfig.CENSORED_KINDS_OF_PLACES;
@@ -13,7 +14,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.LabeledIntent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -21,7 +21,6 @@ import android.graphics.PointF;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.Icon;
 import android.location.Geocoder;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
@@ -32,14 +31,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -66,7 +61,6 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.shape.CornerFamily;
 import com.google.android.material.shape.MaterialShapeDrawable;
 import com.google.android.material.shape.ShapeAppearanceModel;
-import com.google.gson.Gson;
 import com.yandex.mapkit.Animation;
 import com.yandex.mapkit.MapKit;
 import com.yandex.mapkit.MapKitFactory;
@@ -77,7 +71,6 @@ import com.yandex.mapkit.map.CameraListener;
 import com.yandex.mapkit.map.CameraPosition;
 import com.yandex.mapkit.map.CameraUpdateReason;
 import com.yandex.mapkit.map.Map;
-import com.yandex.mapkit.map.MapObject;
 import com.yandex.mapkit.map.MapObjectTapListener;
 import com.yandex.mapkit.mapview.MapView;
 import com.yandex.mapkit.user_location.UserLocationLayer;
@@ -89,7 +82,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.security.AccessController;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -109,8 +101,9 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
     public static BottomSheetBehavior bottomSheetBehavior;
     private final Handler HandlerPlacesUpdater = new Handler();
     private final Handler HandlerCheckAllAccess = new Handler();
-
+    private TableRow row_of_btn;
     public static TableLayout content_layout;
+    private TableRow.LayoutParams trLayoutParams;
     public static TableLayout name_layout;
     public static MainActivity ma;
     private boolean followUserLocation;
@@ -121,11 +114,11 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
     private static Bitmap unknown;
     private static Bitmap industrial;
     private static Bitmap nature;
+    private static Bitmap monument;
     private Bitmap list;
     private Bitmap target;
     private Bitmap wing;
     private Bitmap bin;
-    private static Bitmap monument;
 
     public static CoordinatorLayout ll;
     public static Typeface tf;
@@ -187,33 +180,204 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         bottomSheetBehavior.setPeekHeight(300);
         bottomSheetBehavior.setHideable(false);
 
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        String coords = preferences.getString("last_coords", "");
-        String favs = preferences.getString("favs", "");
+        // Берем все что есть в преференсесах(ну коли есть)
+        InitialisatePrefs();
 
-        if (favs.length() > 0){
-            try {
-                ArrOfFavorite = deserialize(new JSONObject(favs));
-            } catch (JSONException e) {
-                e.printStackTrace();
-                ArrOfFavorite = new HashMap<>();
+        // Инициализируем кнопочки на экране
+        SetSettingsButton();
+        SetFindUserButton();
+        SetListOfFavButton();
+
+        super.onCreate(savedInstanceState);
+        mapView.setZoomFocusPoint(new ScreenPoint(5.f, 4.f));
+        mapView.getMap().addCameraListener((CameraListener) this);
+
+        // Всякие потоки с проверкой на удобоваримые условия труда
+        HandlerCheckAllAccess.removeCallbacks(CheckAllAccess);
+        HandlerPlacesUpdater.removeCallbacks(PlacesUpdater);
+        HandlerCheckAllAccess.postDelayed(CheckAllAccess, 0);
+    }
+
+    private final Runnable CheckAllAccess = new Runnable() {
+        @Override
+        public void run() {
+            if (checkLocationAccess() && checkConnection()){
+                FindUser();
+            } else {
+                HandlerCheckAllAccess.postDelayed(this, 10000);
             }
-        } else {
-            ArrOfFavorite = new HashMap<>();
         }
+    };
 
-        if (coords.length() > 0){
-            List<String> coordList = Arrays.asList(coords.split(" "));
-            myPosition = new Point(Double.parseDouble(coordList.get(0)), Double.parseDouble(coordList.get(1)));
+    private final Runnable PlacesUpdater = new Runnable() {
+        @Override
+        public void run() {
+            if (myPosition.getLatitude() != 0.0){
+                if (counter == 0){
+                    counter++;
+                    mapView.getMap().move(
+                            new CameraPosition(myPosition, 11.5f, 3.0f, 1.0f),
+                            new Animation(Animation.Type.LINEAR, 5),
+                            null);
+                    new asyncTaskGetGeoLocation(MainActivity.this, myPosition, tf).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                }
+                SetPlacesInMap(myPosition);
+                HandlerPlacesUpdater.postDelayed(this, 60000);
+                try {
+                    if (ArrOfFavorite != null){
+                        PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit()
+                                .putString("last_coords", myPosition.getLatitude() + " " + myPosition.getLongitude())
+                                .putString("favs", serialize(ArrOfFavorite).toString())
+                                .apply();
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else {HandlerPlacesUpdater.postDelayed(this, 0);}
         }
+    };
 
+    // Функция получает все памятники в радиусе 10 км от юзера
+    public static void SetPlacesInMap(Point position){
+        Log.e("lon, lat", position.getLongitude() +" "+position.getLatitude());
+        ServiceToGetPlaces service = OTMAPI.CreateService(ServiceToGetPlaces.class);
+        Call<ResponseOTM> call = service.getPlaces(
+                LANGUAGE,
+                10000,
+                position.getLongitude(),
+                position.getLatitude(),
+                KINDS_OF_PLACES,
+                API_OTM
+        );
+        call.enqueue(new Callback<ResponseOTM>() {
+            @RequiresApi(api = Build.VERSION_CODES.Q)
+            @Override
+            public void onResponse(@NonNull Call<ResponseOTM> call, @NonNull Response<ResponseOTM> response) {
+                Log.e("url", CENSORED_KINDS_OF_PLACES+response.toString());
+                if (response.body() != null) {
+                    for (int i = 0; i < response.body().features.size(); i++) {
+                        Feature card = response.body().features.get(i);
+                        double lon = card.geometry.coordinates.get(1);
+                        double lat = card.geometry.coordinates.get(0);
+                        Bitmap bit;
+                        String kinds = card.properties.kinds;
+                        boolean flag = false;
+
+                        for(String str : CENSORED_KINDS_OF_PLACES){
+                            if (kinds.contains(str)){
+                                flag = true;
+                            }
+                        }
+                        if (flag) {
+                            if (kinds.contains("historic")) {
+                                bit = monument;
+                            } else if (kinds.contains("cultural")) {
+                                bit = historical;
+                            } else if (kinds.contains("industrial_facilities")) {
+                                bit = industrial;
+                            } else if (card.properties.name.length() == 0) {
+                                bit = unknown;
+                            } else if (kinds.contains("natural")) {
+                                bit = nature;
+                            } else if (kinds.contains("architecture")) {
+                                bit = buildings;
+                            } else if (kinds.contains("other")) {
+                                bit = forPhoto;
+                            } else {
+                                bit = unknown;
+                            }
+
+                            MapObjectTapListener mapObjectTapListener = (mapObject, point) -> {
+                                MainActivity.GetInfoAbout(card.properties.xid, card.properties.dist.toString());
+                                return true;
+                            };
+                            if (!mapObjectTapListeners.contains(mapObjectTapListener)) {
+                                mapObjectTapListeners.add(mapObjectTapListener);
+                            }
+                            mapView.getMap().getMapObjects()
+                                    .addPlacemark(new Point(lon, lat),
+                                            ImageProvider.fromBitmap(Bitmap.createScaledBitmap(bit,
+                                                    50,
+                                                    50,
+                                                    true))
+                                    ).addTapListener(mapObjectTapListener);
+                        }
+                    }
+                }
+            }
+            @Override
+            public void onFailure(@NonNull Call<ResponseOTM> call, @NonNull Throwable t) {
+                Log.e("!SomethingWentWrong(P)!", t.toString());
+                TextView View_of_Fail = new TextView(ma);
+                View_of_Fail.setText(t.toString());
+                mapView.addView(View_of_Fail);
+            }
+        });
+    }
+
+    // Функция получает всю имеющуюся инфу на памятник (в Опен Тревел Мап)
+    public static void GetInfoAbout(String xid, String distance){
+        Log.e("xid", xid);
+        ServiceToGetInfoAboutPlaces service = OTMAPI.CreateService(ServiceToGetInfoAboutPlaces.class);
+        Call<ResponseOTMInf> call = service.getInfo(
+                xid,
+                LANGUAGE,
+                API_OTM
+        );
+        call.enqueue(new Callback<ResponseOTMInf>() {
+            @RequiresApi(api = Build.VERSION_CODES.Q)
+            @Override
+            public void onResponse(@NonNull Call<ResponseOTMInf> call, @NonNull Response<ResponseOTMInf> response) {
+                Log.e("url", response.toString());
+                if (response.body() != null) {
+                    PlaceInfoDialogFragment newFragment = new PlaceInfoDialogFragment(response, distance);
+                    newFragment.show(ma.getSupportFragmentManager().beginTransaction(), "info");
+                }
+            }
+            @Override
+            public void onFailure(@NonNull Call<ResponseOTMInf> call, @NonNull Throwable t) {
+                Log.e("!SomethingWentWrong(I)!", t.toString());
+                TextView View_of_Fail = new TextView(ma);
+                View_of_Fail.setText(t.toString());
+                mapView.addView(View_of_Fail);
+            }
+        });
+    }
+
+
+
+    public static void clearTableView(ViewGroup tblview){
+        for (View i : getAllChildren(tblview)) {
+            ((ViewGroup) tblview).removeView(i);
+        }
+    }
+
+    public static ArrayList<View> getAllChildren(View v) {
+        if (!(v instanceof ViewGroup)) {
+            ArrayList<View> viewArrayList = new ArrayList<View>();
+            viewArrayList.add(v);
+            return viewArrayList;
+        }
+        ArrayList<View> result = new ArrayList<View>();
+        ViewGroup viewGroup = (ViewGroup) v;
+        for (int i = 0; i < viewGroup.getChildCount(); i++) {
+            View child = viewGroup.getChildAt(i);
+            ArrayList<View> viewArrayList = new ArrayList<View>();
+            viewArrayList.add(v);
+            viewArrayList.addAll(getAllChildren(child));
+            result.addAll(viewArrayList);
+        }
+        return result;
+    }
+
+    private void SetSettingsButton(){
         ImageButton settings = new ImageButton(MainActivity.this);
         settings.setImageDrawable(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(wing, 30, 30, true)));
         settings.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 clearTableView(content_layout);
-                SetKindsDialogFragment newFragment = new SetKindsDialogFragment();
+                SettingsDialogFragment newFragment = new SettingsDialogFragment();
                 newFragment.show(getSupportFragmentManager().beginTransaction(), "settings");
             }
         });
@@ -222,6 +386,38 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         params.gravity = Gravity.RIGHT;
         params.setMargins(14,14,14,14);
         ll.addView(settings, params);
+    }
+
+    private void SetFindUserButton(){
+        ImageButton findUser = new ImageButton(MainActivity.this);
+        findUser.setImageDrawable(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(target, 50, 50, true)));
+        ShapeAppearanceModel shapeAppearanceModelFindUser = new ShapeAppearanceModel()
+                .toBuilder()
+                .setAllCorners(CornerFamily.ROUNDED, 9)
+                .build();
+        MaterialShapeDrawable shapeDrawableFindUser = new MaterialShapeDrawable(shapeAppearanceModelFindUser);
+        ViewCompat.setBackground(findUser, shapeDrawableFindUser);
+        shapeDrawableFindUser.setFillColor(ContextCompat.getColorStateList(MainActivity.this, R.color.white));
+        shapeDrawableFindUser.setStroke(1.5f, ContextCompat.getColor(MainActivity.this, R.color.black));
+        findUser.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (userLocationLayer.cameraPosition()!=null){
+                    Point toPoint = userLocationLayer.cameraPosition().getTarget();
+                    mapView.getMap().move(
+                            new CameraPosition(toPoint, 14.5f, 0.0f, 0.0f),
+                            new Animation(SMOOTH, 2),
+                            null);
+                }
+            }
+        });
+        row_of_btn = new TableRow(MainActivity.this);
+        trLayoutParams = new TableRow.LayoutParams();
+        trLayoutParams.setMargins(250, 0, 7, 40);
+        row_of_btn.addView(findUser, trLayoutParams);
+    }
+
+    private void SetListOfFavButton(){
         ImageButton favorites = new ImageButton(MainActivity.this);
         favorites.setImageDrawable(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(list, 50, 50, true)));
         ShapeAppearanceModel shapeAppearanceModelFavorites = new ShapeAppearanceModel()
@@ -306,237 +502,40 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
             }
         });
 
-
-
-        ImageButton findUser = new ImageButton(MainActivity.this);
-        findUser.setImageDrawable(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(target, 50, 50, true)));
-        ShapeAppearanceModel shapeAppearanceModelFindUser = new ShapeAppearanceModel()
-                .toBuilder()
-                .setAllCorners(CornerFamily.ROUNDED, 9)
-                .build();
-        MaterialShapeDrawable shapeDrawableFindUser = new MaterialShapeDrawable(shapeAppearanceModelFindUser);
-        ViewCompat.setBackground(findUser, shapeDrawableFindUser);
-        shapeDrawableFindUser.setFillColor(ContextCompat.getColorStateList(MainActivity.this, R.color.white));
-        shapeDrawableFindUser.setStroke(1.5f, ContextCompat.getColor(MainActivity.this, R.color.black));
-        findUser.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (userLocationLayer.cameraPosition()!=null){
-                    Point toPoint = userLocationLayer.cameraPosition().getTarget();
-                    mapView.getMap().move(
-                            new CameraPosition(toPoint, 14.5f, 0.0f, 0.0f),
-                            new Animation(SMOOTH, 2),
-                            null);
-                }
-            }
-        });
-
-        TableRow row_of_btn = new TableRow(MainActivity.this);
-        TableRow.LayoutParams trLayoutParams = new TableRow.LayoutParams();
-        trLayoutParams.setMargins(250, 0, 7, 40);
-
-        row_of_btn.addView(findUser, trLayoutParams);
         row_of_btn.addView(favorites, trLayoutParams);
 
         name_layout.addView(row_of_btn);
         name_layout.setGravity(Gravity.CENTER_VERTICAL);
-        super.onCreate(savedInstanceState);
-
-        mapView.setZoomFocusPoint(new ScreenPoint(5.f, 4.f));
-        mapView.getMap().addCameraListener((CameraListener) this);
-        HandlerCheckAllAccess.removeCallbacks(CheckAllAccess);
-        HandlerPlacesUpdater.removeCallbacks(PlacesUpdater);
-        HandlerCheckAllAccess.postDelayed(CheckAllAccess, 0);
     }
 
-    private final Runnable CheckAllAccess = new Runnable() {
-        @Override
-        public void run() {
-            if (checkLocationAccess() && checkConnection()){
-                FindUser();
-            } else {
-                HandlerCheckAllAccess.postDelayed(this, 10000);
+    private void InitialisatePrefs(){
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String coords = preferences.getString("last_coords", "");
+        String favs = preferences.getString("favs", "");
+        String kinds = preferences.getString("kinds", "");
+        String lang = preferences.getString("lang", "");
+
+        if (lang.length() > 0) LANGUAGE = lang;
+        if (kinds.length() > 0){
+            CENSORED_KINDS_OF_PLACES = new ArrayList<String>(Arrays.asList(kinds.split(",")));
+        }else CENSORED_KINDS_OF_PLACES = (ArrayList<String>) ALLOWED_KINDS_OF_PLACES.clone();
+
+        if (favs.length() > 0){
+            try {
+                ArrOfFavorite = deserialize(new JSONObject(favs));
+            } catch (JSONException e) {
+                e.printStackTrace();
+                ArrOfFavorite = new HashMap<>();
             }
+        } else { ArrOfFavorite = new HashMap<>(); }
+
+        if (coords.length() > 0){
+            List<String> coordList = Arrays.asList(coords.split(" "));
+            myPosition = new Point(Double.parseDouble(coordList.get(0)), Double.parseDouble(coordList.get(1)));
         }
-    };
-    private final Runnable PlacesUpdater = new Runnable() {
-        @Override
-        public void run() {
-            if (myPosition.getLatitude() != 0.0){
-                if (counter == 0){
-                    counter++;
-                    mapView.getMap().move(
-                            new CameraPosition(myPosition, 11.5f, 3.0f, 1.0f),
-                            new Animation(Animation.Type.LINEAR, 5),
-                            null);
-                    new asyncTaskGetGeoLocation(MainActivity.this, myPosition, tf).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-                }
-                SetPlacesInMap(myPosition);
-                HandlerPlacesUpdater.postDelayed(this, 60000);
-                try {
-                    if (ArrOfFavorite != null){
-                        PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit()
-                                .putString("last_coords", myPosition.getLatitude() + " " + myPosition.getLongitude())
-                                .putString("favs", serialize(ArrOfFavorite).toString())
-                                .apply();
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            } else {HandlerPlacesUpdater.postDelayed(this, 0);}
-        }
-    };
 
-    public static void SetPlacesInMap(Point position){
-        Log.e("lon, lat", position.getLongitude() +" "+position.getLatitude());
-        ServiceToGetPlaces service = OTMAPI.CreateService(ServiceToGetPlaces.class);
-        Call<ResponseOTM> call = service.getPlaces(
-                LANGUAGE,
-                10000,
-                position.getLongitude(),
-                position.getLatitude(),
-                KINDS_OF_PLACES,
-                API_OTM
-        );
-        call.enqueue(new Callback<ResponseOTM>() {
-            @RequiresApi(api = Build.VERSION_CODES.Q)
-            @Override
-            public void onResponse(@NonNull Call<ResponseOTM> call, @NonNull Response<ResponseOTM> response) {
-                Log.e("url", CENSORED_KINDS_OF_PLACES+response.toString());
-                if (response.body() != null) {
-                    for (int i = 0; i < response.body().features.size(); i++) {
-                        Feature card = response.body().features.get(i);
-                        double lon = card.geometry.coordinates.get(1);
-                        double lat = card.geometry.coordinates.get(0);
-                        Bitmap bit;
-                        String kinds = card.properties.kinds;
-                        boolean flag = false;
-
-                        for(String str : CENSORED_KINDS_OF_PLACES){
-                            if (kinds.contains(str)){
-                                flag = true;
-                            }
-                        }
-                        if (flag) {
-                            if (kinds.contains("historic")) {
-                                bit = monument;
-                            } else if (kinds.contains("cultural")) {
-                                bit = historical;
-                            } else if (kinds.contains("industrial_facilities")) {
-                                bit = industrial;
-                            } else if (card.properties.name.length() == 0) {
-                                bit = unknown;
-                            } else if (kinds.contains("natural")) {
-                                bit = nature;
-                            } else if (kinds.contains("architecture")) {
-                                bit = buildings;
-                            } else if (kinds.contains("other")) {
-                                bit = forPhoto;
-                            } else {
-                                bit = unknown;
-                            }
-
-
-                            MapObjectTapListener mapObjectTapListener = (mapObject, point) -> {
-                                MainActivity.GetInfoAbout(card.properties.xid, card.properties.dist.toString());
-                                return true;
-                            };
-                            if (!mapObjectTapListeners.contains(mapObjectTapListener)) {
-                                mapObjectTapListeners.add(mapObjectTapListener);
-                            }
-
-
-                            mapView.getMap().getMapObjects()
-                                    .addPlacemark(new Point(lon, lat),
-                                            ImageProvider.fromBitmap(Bitmap.createScaledBitmap(bit,
-                                                    50,
-                                                    50,
-                                                    true))
-                                    ).addTapListener(mapObjectTapListener);
-                        }
-                    }
-                }
-            }
-            @Override
-            public void onFailure(@NonNull Call<ResponseOTM> call, @NonNull Throwable t) {
-                Log.e("!SomethingWentWrong(P)!", t.toString());
-                TextView View_of_Fail = new TextView(ma);
-                View_of_Fail.setText(t.toString());
-                mapView.addView(View_of_Fail);
-            }
-        });
-    }
-    public static void clearTableView(ViewGroup tblview){
-        for (View i : getAllChildren(tblview)) {
-            ((ViewGroup) tblview).removeView(i);
-        }
-    }
-    public static ArrayList<View> getAllChildren(View v) {
-        if (!(v instanceof ViewGroup)) {
-            ArrayList<View> viewArrayList = new ArrayList<View>();
-            viewArrayList.add(v);
-            return viewArrayList;
-        }
-        ArrayList<View> result = new ArrayList<View>();
-        ViewGroup viewGroup = (ViewGroup) v;
-        for (int i = 0; i < viewGroup.getChildCount(); i++) {
-            View child = viewGroup.getChildAt(i);
-            ArrayList<View> viewArrayList = new ArrayList<View>();
-            viewArrayList.add(v);
-            viewArrayList.addAll(getAllChildren(child));
-            result.addAll(viewArrayList);
-        }
-        return result;
-    }
-    public static void GetInfoAbout(String xid, String distance){
-        Log.e("xid", xid);
-        ServiceToGetInfoAboutPlaces service = OTMAPI.CreateService(ServiceToGetInfoAboutPlaces.class);
-        Call<ResponseOTMInf> call = service.getInfo(
-                xid,
-                LANGUAGE,
-                API_OTM
-        );
-        call.enqueue(new Callback<ResponseOTMInf>() {
-            @RequiresApi(api = Build.VERSION_CODES.Q)
-            @Override
-            public void onResponse(@NonNull Call<ResponseOTMInf> call, @NonNull Response<ResponseOTMInf> response) {
-                Log.e("url", response.toString());
-                if (response.body() != null) {
-                    PlaceInfoDialogFragment newFragment = new PlaceInfoDialogFragment(response, distance);
-                    newFragment.show(ma.getSupportFragmentManager().beginTransaction(), "info");
-                }
-            }
-            @Override
-            public void onFailure(@NonNull Call<ResponseOTMInf> call, @NonNull Throwable t) {
-                Log.e("!SomethingWentWrong(I)!", t.toString());
-                TextView View_of_Fail = new TextView(ma);
-                View_of_Fail.setText(t.toString());
-                mapView.addView(View_of_Fail);
-            }
-        });
     }
 
-    @Override
-    protected void onStop() {
-        mapView.onStop();
-        MapKitFactory.getInstance().onStop();
-        super.onStop();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        MapKitFactory.getInstance().onStart();
-        mapView.onStart();
-    }
-
-
-    public void  setAnchor(){
-        userLocationLayer.setAnchor(
-                new PointF((float)(mapView.getWidth() * 0.5), (float)(mapView.getHeight() * 0.5)),
-                new PointF((float)(mapView.getWidth() * 0.5), (float)(mapView.getHeight() * 0.83))
-        );
-    }
     public static java.util.Map<String, ArrayList<String>> deserialize(JSONObject json) throws JSONException {
         java.util.Map<String, ArrayList<String> > map = new HashMap<>();
         for (Iterator<String> it = json.keys(); it.hasNext(); ) {
@@ -558,6 +557,13 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
             json.put(entry.getKey(), new JSONArray(entry.getValue()));
         }
         return json;
+    }
+
+    public void  setAnchor(){
+        userLocationLayer.setAnchor(
+                new PointF((float)(mapView.getWidth() * 0.5), (float)(mapView.getHeight() * 0.5)),
+                new PointF((float)(mapView.getWidth() * 0.5), (float)(mapView.getHeight() * 0.83))
+        );
     }
 
     public void  removeAnchor(){ if (userLocationLayer != null) userLocationLayer.resetAnchor(); }
@@ -607,7 +613,6 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         }
     }
 
-
     public boolean checkConnection(){
         Log.e("checkConnection", hasConnection()+"");
         if (hasConnection()){
@@ -642,6 +647,20 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
     }
 
     @Override
+    protected void onStop() {
+        mapView.onStop();
+        MapKitFactory.getInstance().onStop();
+        super.onStop();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        MapKitFactory.getInstance().onStart();
+        mapView.onStart();
+    }
+
+    @Override
     public void onObjectAdded(@NonNull UserLocationView userLocationView) {
         setAnchor();
         @SuppressLint("UseCompatLoadingForDrawables") Drawable d = getResources().getDrawable(R.drawable.userpic);
@@ -660,6 +679,7 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
 
     @Override
     public void onCameraPositionChanged(Map m, CameraPosition cP, CameraUpdateReason cUR, boolean finished) {
+        // Гениальный(sic!) текствью с описанием зума карты слева сверху
         if (regions != null && regions.size() > 0){
             float zoom = cP.getZoom();
             if (zoom > 12f){
