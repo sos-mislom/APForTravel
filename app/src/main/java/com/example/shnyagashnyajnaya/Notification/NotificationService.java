@@ -138,20 +138,34 @@ public class NotificationService extends Service  {
                             }
 
                             Intent removeIntent = new Intent(NotificationService.this, NotificationCallbackService.class);
+                            removeIntent.setAction(NotificationCallbackService.ACTION_REMOVE);
                             removeIntent.putExtra("xid", str);
+                            removeIntent.putExtra("id", --size);
 
                             @SuppressLint("UnspecifiedImmutableFlag") PendingIntent removePendingIntent =
-                                    PendingIntent.getBroadcast(getApplicationContext(),
-                                            --size, removeIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                                    PendingIntent.getService(getApplicationContext(),
+                                            size, removeIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+
+                            Intent findIntent = new Intent(NotificationService.this, NotificationCallbackService.class);
+                            findIntent.setAction(NotificationCallbackService.ACTION_FIND);
+                            findIntent.putExtra("target", PlacePosition.getLatitude() + " " + PlacePosition.getLongitude());
+                            findIntent.putExtra("xid", str);
+                            findIntent.putExtra("dist", dist);
+
+                            @SuppressLint("UnspecifiedImmutableFlag") PendingIntent findPendingIntent =
+                                    PendingIntent.getService(getApplicationContext(),
+                                            101, findIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
 
                             Notification notification =
                                     new NotificationCompat.Builder(NotificationService.this, DEFAULT_NOTIFICATION_CHANNEL)
                                             .setSmallIcon(Icon)
-                                            .setAutoCancel(true)
                                             .setLargeIcon(BitmapFactory.decodeResource(getResources(), Icon))
                                             .setContentTitle(title)
                                             .setContentText(text)
                                             .addAction(R.drawable.bin, actionText, removePendingIntent)
+                                            .setContentIntent(findPendingIntent)
                                             .build();
 
                             NotificationManager notificationManager =
