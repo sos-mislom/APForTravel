@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class APIConfig {
+    public static final String DEFAULT_NOTIFICATION_CHANNEL = "DEFAULT_CHANNEL";
     public static final String HOST_URL = "https://api.opentripmap.com/";
     public static String KINDS_OF_PLACES = "interesting_places";
     public static ArrayList<String> CENSORED_KINDS_OF_PLACES = new ArrayList<>();

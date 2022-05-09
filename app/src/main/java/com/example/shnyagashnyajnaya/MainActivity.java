@@ -41,6 +41,7 @@ import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -51,6 +52,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 
+import com.example.shnyagashnyajnaya.Notification.NotificationService;
 import com.example.shnyagashnyajnaya.OTMAPI.OTMAPI;
 import com.example.shnyagashnyajnaya.OTMAPI.ResponseOTM.Feature;
 import com.example.shnyagashnyajnaya.OTMAPI.ResponseOTM.ResponseOTM;
@@ -136,7 +138,12 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         MapKitFactory.setApiKey(API_YANDEX_MAP);
-        MapKitFactory.initialize(this);
+        try {
+            MapKitFactory.initialize(this);
+        } catch (AssertionError e){
+            MapKitFactory.setApiKey(API_YANDEX_MAP);
+            MapKitFactory.initialize(this);
+        }
         setContentView(R.layout.activity_main);
         geocoder = new Geocoder(this, Locale.getDefault());
         tx_town = new TextView(MainActivity.this);
@@ -195,7 +202,12 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
         // Всякие потоки с проверкой на удобоваримые условия труда
         HandlerCheckAllAccess.removeCallbacks(CheckAllAccess);
         HandlerPlacesUpdater.removeCallbacks(PlacesUpdater);
+
         HandlerCheckAllAccess.postDelayed(CheckAllAccess, 0);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(new Intent(this, NotificationService.class));
+        }
+
     }
 
     private final Runnable CheckAllAccess = new Runnable() {
@@ -204,17 +216,19 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
             if (checkLocationAccess() && checkConnection()){
                 FindUser();
             } else {
-                HandlerCheckAllAccess.postDelayed(this, 10000);
+                HandlerCheckAllAccess.postDelayed(this, 9000);
             }
         }
     };
 
     private final Runnable PlacesUpdater = new Runnable() {
+
         @Override
         public void run() {
             if (myPosition.getLatitude() != 0.0){
                 if (counter == 0){
                     counter++;
+
                     mapView.getMap().move(
                             new CameraPosition(myPosition, 11.5f, 3.0f, 1.0f),
                             new Animation(Animation.Type.LINEAR, 5),
@@ -308,9 +322,8 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
             @Override
             public void onFailure(@NonNull Call<ResponseOTM> call, @NonNull Throwable t) {
                 Log.e("!SomethingWentWrong(P)!", t.toString());
-                TextView View_of_Fail = new TextView(ma);
-                View_of_Fail.setText(t.toString());
-                mapView.addView(View_of_Fail);
+                Toast.makeText(ma, "[WARNING] " +t.toString(),
+                        Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -337,9 +350,8 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
             @Override
             public void onFailure(@NonNull Call<ResponseOTMInf> call, @NonNull Throwable t) {
                 Log.e("!SomethingWentWrong(I)!", t.toString());
-                TextView View_of_Fail = new TextView(ma);
-                View_of_Fail.setText(t.toString());
-                mapView.addView(View_of_Fail);
+                Toast.makeText(ma,"[WARNING] " +t.toString(),
+                        Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -595,18 +607,15 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
             builder.setMessage("Соблаговалите вас обнаружить");
             builder.setPositiveButton("Окей", new DialogInterface.OnClickListener() {
                 public void onClick(final DialogInterface dialog, final int id) {
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-                            finish();
-                        }
-                    }, 10000);
+                    startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    checkLocation();
                     result[0] = true;
                 }
             });
             final AlertDialog alert = builder.create();
-            alert.show();
+            try {
+                alert.show();
+            } catch (Exception e){}
             return result[0];
         } else {
             return true;
@@ -625,6 +634,7 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
                     .setPositiveButton("Без б", new DialogInterface.OnClickListener() {
                         public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
                             startActivity(new Intent(WifiManager.ACTION_PICK_WIFI_NETWORK));
+                            checkConnection();
                             result[0] = true;
                         }
                     });

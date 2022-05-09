@@ -134,7 +134,7 @@ public class PlaceInfoDialogFragment  extends DialogFragment {
         placeInfo.setTitle(name);
         placeInfo.setIcon(bit);
         placeInfo.setView(view);
-        if (!ArrOfFavorite.keySet().contains(response.body().getName())){
+        if (!ArrOfFavorite.keySet().contains(response.body().getXid())){
             if (name.length() > 23){name = name.substring(0, 20) + "...";}
             String finalName = name;
             placeInfo.setNegativeButton(str_to_fav, new DialogInterface.OnClickListener() {
@@ -145,7 +145,7 @@ public class PlaceInfoDialogFragment  extends DialogFragment {
                     target.add(String.valueOf(bit));
                     target.add(finalName);
                     target.add(address);
-                    ArrOfFavorite.put(response.body().getName(), target);
+                    ArrOfFavorite.put(response.body().getXid(), target);
                     try {
                         PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit()
                                 .putString("favs", serialize(ArrOfFavorite).toString())

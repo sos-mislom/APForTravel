@@ -48,9 +48,9 @@ public class asyncTaskGetGeoLocation extends AsyncTask<String, Void, ArrayList<S
         try {
             List<Address> location = geocoder.getFromLocation(position.getLatitude(), position.getLongitude(), 1);
             arr.add(location.get(0).getThoroughfare()); //route
-            arr.add(location.get(0).getLocality());//town
-            arr.add( location.get(0).getAdminArea());//admin
-            arr.add(location.get(0).getCountryName());//country
+            arr.add(location.get(0).getLocality()); //town
+            arr.add( location.get(0).getAdminArea()); //admin
+            arr.add(location.get(0).getCountryName()); //country
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -64,12 +64,13 @@ public class asyncTaskGetGeoLocation extends AsyncTask<String, Void, ArrayList<S
         MainActivity.regions = result;
         if (ll.findViewById(1) instanceof TextView){
             tx_town.setText(result.get(0));
-        } else if (result.size() >= 0){
+        } else if (result.size() > 0){
             tx_town.setTextSize(30);
             tx_town.setTypeface(tf);
             tx_town.setId(1);
             tx_town.setTextColor(ContextCompat.getColor(mainActivity, R.color.black));
             tx_town.setPadding(20, 70, 0, 0);
+
             tx_town.setText(result.get(0));
 
             tx_town.setGravity(Gravity.TOP);
