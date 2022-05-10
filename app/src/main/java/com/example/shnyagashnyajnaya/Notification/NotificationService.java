@@ -149,7 +149,6 @@ public class NotificationService extends Service  {
 
                             Intent findIntent = new Intent(NotificationService.this, NotificationCallbackService.class);
                             findIntent.setAction(NotificationCallbackService.ACTION_FIND);
-                            findIntent.putExtra("target", PlacePosition.getLatitude() + " " + PlacePosition.getLongitude());
                             findIntent.putExtra("xid", str);
                             findIntent.putExtra("dist", dist);
 
@@ -158,7 +157,7 @@ public class NotificationService extends Service  {
                                             101, findIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
 
-                            Notification notification =
+                            @SuppressLint("NotificationTrampoline") Notification notification =
                                     new NotificationCompat.Builder(NotificationService.this, DEFAULT_NOTIFICATION_CHANNEL)
                                             .setSmallIcon(Icon)
                                             .setLargeIcon(BitmapFactory.decodeResource(getResources(), Icon))

@@ -54,10 +54,8 @@ public class PlaceInfoDialogFragment  extends DialogFragment {
         View view = inflater.inflate(R.layout.dialog_fragment, null);
         tableLayout = view.findViewById(R.id.contentDialogFragment);
 
-
-        String str = "";
         String name = response.body().getName();
-        if (Objects.equals(name, "")) {name = "Без названия";}
+
         if (!LANGUAGE.equals("ru")){
             if (Objects.equals(name, "")) {name = "Unnamed";}
             tittle = "Description ";
@@ -66,6 +64,7 @@ public class PlaceInfoDialogFragment  extends DialogFragment {
             str_to_fav = R.string.addToFavorite_eng;
             str_alr_in = R.string.alreadyInFavorite_eng;
         } else {
+            if (Objects.equals(name, "")) {name = "Без названия";}
             dist = "До места(м): " + dist;
         }
         url = checkIfNull(response.body().getWikipedia());
