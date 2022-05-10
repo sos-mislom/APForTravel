@@ -1,13 +1,10 @@
 package com.example.shnyagashnyajnaya.Notification;
 
-import static com.example.shnyagashnyajnaya.MainActivity.ArrOfFavorite;
 import static com.example.shnyagashnyajnaya.MainActivity.deserialize;
 import static com.example.shnyagashnyajnaya.MainActivity.ma;
 import static com.example.shnyagashnyajnaya.MainActivity.myPosition;
-import static com.example.shnyagashnyajnaya.MainActivity.serialize;
 import static com.example.shnyagashnyajnaya.OTMAPI.APIConfig.DEFAULT_NOTIFICATION_CHANNEL;
 import static com.example.shnyagashnyajnaya.OTMAPI.APIConfig.LANGUAGE;
-
 import static java.lang.Math.cos;
 
 import android.annotation.SuppressLint;
@@ -15,26 +12,17 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
-import android.location.Location;
-import android.location.LocationListener;
 import android.os.Build;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.util.Log;
-import android.widget.RemoteViews;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 
-import com.example.shnyagashnyajnaya.MainActivity;
 import com.example.shnyagashnyajnaya.R;
 import com.yandex.mapkit.geometry.Point;
 

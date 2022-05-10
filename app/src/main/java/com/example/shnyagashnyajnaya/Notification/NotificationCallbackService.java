@@ -2,29 +2,20 @@ package com.example.shnyagashnyajnaya.Notification;
 
 import static com.example.shnyagashnyajnaya.MainActivity.ArrOfFavorite;
 import static com.example.shnyagashnyajnaya.MainActivity.GetInfoAbout;
-import static com.example.shnyagashnyajnaya.MainActivity.ma;
 import static com.example.shnyagashnyajnaya.MainActivity.mapView;
 import static com.example.shnyagashnyajnaya.MainActivity.serialize;
-import static com.yandex.mapkit.Animation.Type.SMOOTH;
 
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
 
 import com.example.shnyagashnyajnaya.MainActivity;
-import com.yandex.mapkit.Animation;
-import com.yandex.mapkit.geometry.Point;
-import com.yandex.mapkit.map.CameraPosition;
 
 import org.json.JSONException;
-
-import java.util.Arrays;
-import java.util.List;
 
 public class NotificationCallbackService extends Service {
     public static final String ACTION_FIND = "action.find";
@@ -46,7 +37,7 @@ public class NotificationCallbackService extends Service {
                 case ACTION_REMOVE:
                     xid = intent.getStringExtra("xid");
                     id = intent.getIntExtra("id", 0);
-                    if (ArrOfFavorite.keySet().contains(xid)) ArrOfFavorite.remove(xid);
+                    if (ArrOfFavorite.containsKey(xid)) ArrOfFavorite.remove(xid);
                     try {
                         PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit()
                                 .putString("favs", serialize(ArrOfFavorite).toString())
