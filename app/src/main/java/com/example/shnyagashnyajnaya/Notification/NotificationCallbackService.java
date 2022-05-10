@@ -60,11 +60,15 @@ public class NotificationCallbackService extends Service {
                     }
                     break;
                 case ACTION_FIND:
-                    Intent intent_strt = new Intent(this, MainActivity.class);
-                    intent_strt.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent_strt);
+                    if (mapView.isShown()){
+                        GetInfoAbout(intent.getStringExtra("xid"), intent.getStringExtra("dist"));
+                    }else{
+                        Intent intent_strt = new Intent(this, MainActivity.class);
+                        intent_strt.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent_strt);
+                        GetInfoAbout(intent.getStringExtra("xid"), intent.getStringExtra("dist"));
+                    }
 
-                    GetInfoAbout(intent.getStringExtra("xid"), intent.getStringExtra("dist"));
                     break;
             }
 
