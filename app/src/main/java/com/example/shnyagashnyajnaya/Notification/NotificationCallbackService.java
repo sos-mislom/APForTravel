@@ -2,6 +2,7 @@ package com.example.shnyagashnyajnaya.Notification;
 
 import static com.example.shnyagashnyajnaya.MainActivity.ArrOfFavorite;
 import static com.example.shnyagashnyajnaya.MainActivity.GetInfoAbout;
+import static com.example.shnyagashnyajnaya.MainActivity.ma;
 import static com.example.shnyagashnyajnaya.MainActivity.mapView;
 import static com.example.shnyagashnyajnaya.MainActivity.serialize;
 import static com.yandex.mapkit.Animation.Type.SMOOTH;
@@ -15,6 +16,7 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import com.example.shnyagashnyajnaya.MainActivity;
 import com.yandex.mapkit.Animation;
 import com.yandex.mapkit.geometry.Point;
 import com.yandex.mapkit.map.CameraPosition;
@@ -58,12 +60,10 @@ public class NotificationCallbackService extends Service {
                     }
                     break;
                 case ACTION_FIND:
-                    List<String> coordList = Arrays.asList(intent.getStringExtra("target").split(" "));
-                    Point PlacePosition = new Point(Double.parseDouble(coordList.get(0)), Double.parseDouble(coordList.get(1)));
-                    mapView.getMap().move(
-                            new CameraPosition(PlacePosition, 20.5f, 0.0f, 0.0f),
-                            new Animation(SMOOTH, 2),
-                            null);
+                    Intent intent_strt = new Intent(this, MainActivity.class);
+                    intent_strt.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent_strt);
+
                     GetInfoAbout(intent.getStringExtra("xid"), intent.getStringExtra("dist"));
                     break;
             }

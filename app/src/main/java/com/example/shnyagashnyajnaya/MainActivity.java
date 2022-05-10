@@ -10,6 +10,7 @@ import static com.yandex.mapkit.Animation.Type.SMOOTH;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -84,6 +85,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.nio.file.attribute.PosixFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -137,12 +139,11 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
     @SuppressLint("ResourceAsColor")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        MapKitFactory.setApiKey(API_YANDEX_MAP);
         try {
-            MapKitFactory.initialize(this);
-        } catch (AssertionError e){
             MapKitFactory.setApiKey(API_YANDEX_MAP);
-            MapKitFactory.initialize(this);
+            MapKitFactory.initialize(MainActivity.this);
+        } catch (AssertionError e){
+            MapKitFactory.initialize(MainActivity.this);
         }
         setContentView(R.layout.activity_main);
         geocoder = new Geocoder(this, Locale.getDefault());
@@ -302,7 +303,7 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
                             }
 
                             MapObjectTapListener mapObjectTapListener = (mapObject, point) -> {
-                                MainActivity.GetInfoAbout(card.properties.xid, card.properties.dist.toString());
+                                GetInfoAbout(card.properties.xid, card.properties.dist.toString());
                                 return true;
                             };
                             if (!mapObjectTapListeners.contains(mapObjectTapListener)) {
@@ -330,6 +331,7 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
 
     // Функция получает всю имеющуюся инфу на памятник (в Опен Тревел Мап)
     public static void GetInfoAbout(String xid, String distance){
+
         Log.e("xid", xid);
         ServiceToGetInfoAboutPlaces service = OTMAPI.CreateService(ServiceToGetInfoAboutPlaces.class);
         Call<ResponseOTMInf> call = service.getInfo(
@@ -343,6 +345,11 @@ public class MainActivity extends AppCompatActivity implements UserLocationObjec
             public void onResponse(@NonNull Call<ResponseOTMInf> call, @NonNull Response<ResponseOTMInf> response) {
                 Log.e("url", response.toString());
                 if (response.body() != null) {
+                    mapView.getMap().move(
+                            new CameraPosition(new Point(response.body().getPoint().getLat(),response.body().getPoint().getLon()),
+                                    18.5f, 0.0f, 0.0f),
+                                        new Animation(SMOOTH, 5),
+                            null);
                     PlaceInfoDialogFragment newFragment = new PlaceInfoDialogFragment(response, distance);
                     newFragment.show(ma.getSupportFragmentManager().beginTransaction(), "info");
                 }
